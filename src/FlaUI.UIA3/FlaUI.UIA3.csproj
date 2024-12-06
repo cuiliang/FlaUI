@@ -47,6 +47,10 @@
     <None Include="..\..\FlaUI.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="9.0.0" />
+  </ItemGroup>
+
   <!-- Interop References -->
   <Choose>
     <When Condition="'$(EnableSigning)'=='true'">
