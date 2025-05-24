@@ -22,9 +22,9 @@ namespace FlaUI.Core.Capturing
         private readonly VideoRecorderSettings _settings;
         private readonly Func<VideoRecorder, CaptureImage> _captureMethod;
         private readonly BlockingCollection<ImageData> _frames;
-        private Task _recordTask;
+        private Task? _recordTask;
         private bool _shouldRecord;
-        private Task _writeTask;
+        private Task? _writeTask;
         private DateTime _recordStartTime;
         private static readonly HttpClient _httpClient = new HttpClient();
 
@@ -93,7 +93,15 @@ namespace FlaUI.Core.Capturing
                 var timeTillNextFrame = timestamp + frameInterval - DateTime.UtcNow;
                 if (timeTillNextFrame > TimeSpan.Zero)
                 {
-                    await Task.Delay(timeTillNextFrame);
+                    if (timeTillNextFrame > TimeSpan.FromSeconds(1))
+                    {
+                        // Happens when the system date is set to an earlier time during recording
+                        await Task.Delay(frameInterval);
+                    }
+                    else
+                    {
+                        await Task.Delay(timeTillNextFrame);
+                    }
                 }
             }
             if (totalMissedFrames > 0 && _settings.LogMissingFrames)
@@ -107,10 +115,10 @@ namespace FlaUI.Core.Capturing
             var videoPipeName = $"flaui-capture-{Guid.NewGuid()}";
             var ffmpegIn = new NamedPipeServerStream(videoPipeName, PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 10000, 10000);
             const string pipePrefix = @"\\.\pipe\";
-            Process ffmpegProcess = null;
+            Process? ffmpegProcess = null;
 
             var isFirstFrame = true;
-            ImageData lastImage = null;
+            ImageData? lastImage = null;
             while (!_frames.IsCompleted)
             {
                 _frames.TryTake(out var img, -1);
@@ -280,7 +288,7 @@ namespace FlaUI.Core.Capturing
             public int Width { get; set; }
             public int Height { get; set; }
             public bool IsRepeatFrame { get; private set; }
-            public byte[] Data { get; set; }
+            public byte[]? Data { get; set; }
 
             public static readonly ImageData RepeatImage = new ImageData { IsRepeatFrame = true };
 

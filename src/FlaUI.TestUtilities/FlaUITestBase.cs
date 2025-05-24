@@ -50,16 +50,27 @@ namespace FlaUI.TestUtilities
         protected virtual bool KeepVideoForSuccessfulTests => false;
 
         /// <summary>
+        /// Flag to indicate if screenshots should be taken in failing tests.
+        /// Defaults to true.
+        /// </summary>
+        protected virtual bool TakeScreenshots => true;
+
+        /// <summary>
         /// Specifies the mode of the video recorder.
         /// Defaults to OnePerTest.
         /// </summary>
         protected virtual VideoRecordingMode VideoRecordingMode => VideoRecordingMode.OnePerTest;
 
         /// <summary>
+        /// static member which holds the current execution date and time
+        /// </summary> 
+        private static string _testDateTime = DateTime.Now.ToString("yyyyMMddHHmmss");
+
+        /// <summary>
         /// Path of the directory for the screenshots and videos for the tests.
         /// Defaults to c:\temp\testsmedia.
         /// </summary>
-        protected virtual string TestsMediaPath => @"c:\temp\testsmedia";
+        protected virtual string TestsMediaPath => $@"c:\temp\testsmedia\{SanitizeFileName(TestContext.CurrentContext.Test.Name)}\{_testDateTime}";
 
         /// <summary>
         /// Gets the automation instance that should be used.
@@ -137,9 +148,12 @@ namespace FlaUI.TestUtilities
         [TearDown]
         public virtual void UITestBaseTearDown()
         {
-            if (TestContext.CurrentContext.Result.Outcome.Status == TestStatus.Failed)
+            if (TestContext.CurrentContext.Result.Outcome.Status == TestStatus.Failed && TakeScreenshots == true)
             {
                 TakeScreenShot(TestContext.CurrentContext.Test.FullName);
+                TestContext.AddTestAttachment(
+                    CreateScreenShotPath(TestContext.CurrentContext.Test.FullName),
+                    TestContext.CurrentContext.Test.FullName);
             }
 
             if (ApplicationStartMode == ApplicationStartMode.OncePerTest)
@@ -251,9 +265,7 @@ namespace FlaUI.TestUtilities
         /// </summary>
         private void TakeScreenShot(string testName)
         {
-            var imageName = SanitizeFileName(testName) + ".png";
-            imageName = imageName.Replace("\"", String.Empty);
-            var imagePath = Path.Combine(TestsMediaPath, imageName);
+            var imagePath = CreateScreenShotPath(testName);
             try
             {
                 Directory.CreateDirectory(TestsMediaPath);
@@ -272,6 +284,16 @@ namespace FlaUI.TestUtilities
         {
             fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
             return fileName;
+        }
+        
+        /// <summary>
+        /// Generates full path for screenshot.
+        /// </summary>
+        private string CreateScreenShotPath(string testName)
+        {
+            var imageName = SanitizeFileName(testName) + ".png";
+            imageName = imageName.Replace("\"", String.Empty);
+            return Path.Combine(TestsMediaPath, imageName);
         }
     }
 }
